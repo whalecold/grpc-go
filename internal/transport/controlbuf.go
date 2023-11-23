@@ -408,6 +408,9 @@ func (c *controlBuffer) get(block bool) (interface{}, error) {
 		select {
 		case <-c.ch:
 		case <-c.done:
+			if logger.V(logLevel) {
+				logger.Infof("controlBuffer done.")
+			}
 			return nil, ErrConnClosing
 		}
 	}
@@ -419,6 +422,9 @@ func (c *controlBuffer) finish() {
 		c.mu.Unlock()
 		return
 	}
+	if logger.V(logLevel) {
+		logger.Infof("controlBuffer finish.")
+	}
 	c.err = ErrConnClosing
 	// There may be headers for streams in the control buffer.
 	// These streams need to be cleaned out since the transport
@@ -429,6 +435,9 @@ func (c *controlBuffer) finish() {
 			continue
 		}
 		if hdr.onOrphaned != nil { // It will be nil on the server-side.
+			if logger.V(logLevel) {
+				logger.Infof("controlBuffer onOrphaned.")
+			}
 			hdr.onOrphaned(ErrConnClosing)
 		}
 	}
@@ -663,6 +672,9 @@ func (l *loopyWriter) originateStream(str *outStream) error {
 	hdr := str.itl.dequeue().(*headerFrame)
 	if err := hdr.initStream(str.id); err != nil {
 		if err == ErrConnClosing {
+			if logger.V(logLevel) {
+				logger.Infof("controlBuffer originateStream.")
+			}
 			return err
 		}
 		// Other errors(errStreamDrain) need not close transport.
@@ -764,6 +776,9 @@ func (l *loopyWriter) cleanupStreamHandler(c *cleanupStream) error {
 		}
 	}
 	if l.side == clientSide && l.draining && len(l.estdStreams) == 0 {
+		if logger.V(logLevel) {
+			logger.Infof("controlBuffer receive cleanup frame.")
+		}
 		return ErrConnClosing
 	}
 	return nil
@@ -799,6 +814,9 @@ func (l *loopyWriter) incomingGoAwayHandler(*incomingGoAway) error {
 	if l.side == clientSide {
 		l.draining = true
 		if len(l.estdStreams) == 0 {
+			if logger.V(logLevel) {
+				logger.Infof("controlBuffer receive incomingGoAway frame.")
+			}
 			return ErrConnClosing
 		}
 	}
